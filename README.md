@@ -104,7 +104,9 @@ docs/                         Pattern explanations and storage documentation
 
 - [Factory Method and Observer](docs/nurlan-patterns.md)
 - [Builder and Strategy](docs/asyl-patterns.md)
+- [Facade and Decorator](docs/adil-patterns.md)
 - [File storage and locking](docs/storage.md)
+- [Step-by-step defense walkthrough](docs/defense-demo.md)
 
 Snapshots are UTF-8 Java Properties files. A session holds an exclusive lock on a
 stable `.lock` sidecar so another application instance cannot open the same data
