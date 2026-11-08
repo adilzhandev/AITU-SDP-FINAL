@@ -1,0 +1,11 @@
+out/
+build/
+output/
+data/
+*.class
+*.log
+.idea/
+.vscode/
+.DS_Store
+.tools/
+.git-local/
