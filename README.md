@@ -38,7 +38,9 @@ the launched application's exit status. No shell script or package manager is ne
 
 ## Desktop interface
 
-The desktop uses Swing from the JDK. It is a local application window, not a
+The desktop uses Swing and the bundled Nimbus light theme from the JDK, so its
+controls remain readable with either a light or dark operating-system theme.
+It is a local application window, not a
 website, and requires a graphical desktop. The six existing patterns and
 `SchoolFacade` are shared with the console.
 

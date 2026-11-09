@@ -18,10 +18,10 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import school.application.DemoData;
 import school.ui.DesktopSession;
+import school.ui.DesktopTheme;
 import school.ui.SchoolPanel;
 
 /** Desktop entry point. The Swing view uses the same facade and snapshot as the console. */
@@ -62,10 +62,7 @@ public final class GuiMain {
             if (demo) DemoData.populate(session.school());
             SwingUtilities.invokeLater(() -> {
                 try {
-                    try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
-                    catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ignored) {
-                        // The JDK's default Swing look and feel is a usable fallback.
-                    }
+                    DesktopTheme.install();
                     new GuiMain(session).show();
                 } catch (Exception error) {
                     try { session.close(); } catch (IOException closeError) { error.addSuppressed(closeError); }
@@ -76,6 +73,12 @@ public final class GuiMain {
         } catch (IOException error) {
             System.err.println("Cannot open school data: " + error.getMessage());
             SwingUtilities.invokeLater(() -> {
+                try { DesktopTheme.install(); }
+                catch (javax.swing.UnsupportedLookAndFeelException themeError) {
+                    System.err.println("Cannot initialize desktop theme: " + themeError.getMessage());
+                    System.exit(1);
+                    return;
+                }
                 JOptionPane.showMessageDialog(null, error.getMessage(), "Cannot open school data", JOptionPane.ERROR_MESSAGE);
                 System.exit(1);
             });
@@ -86,9 +89,11 @@ public final class GuiMain {
         window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         window.add(new SchoolPanel(session.school(), this::changed), BorderLayout.CENTER);
         JPanel footer = new JPanel(new BorderLayout(12, 0));
+        footer.setBackground(DesktopTheme.BACKGROUND);
         footer.setBorder(BorderFactory.createEmptyBorder(10, 18, 12, 18));
         footer.add(status, BorderLayout.CENTER);
         JPanel actions = new JPanel();
+        actions.setOpaque(false);
         JButton save = new JButton("Save now");
         save.setEnabled(session.file() != null);
         save.addActionListener(event -> save());

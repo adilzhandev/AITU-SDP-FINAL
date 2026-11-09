@@ -45,10 +45,10 @@ import school.users.User;
 
 /** Swing presentation layer; all changes go through the existing school facade. */
 public final class SchoolPanel extends JPanel {
-    private static final Color INK = new Color(26, 48, 67);
-    private static final Color TEAL = new Color(0, 111, 119);
-    private static final Color MUTED = new Color(82, 101, 116);
-    private static final Color BACKGROUND = new Color(242, 246, 249);
+    private static final Color INK = DesktopTheme.INK;
+    private static final Color TEAL = DesktopTheme.TEAL;
+    private static final Color MUTED = DesktopTheme.MUTED;
+    private static final Color BACKGROUND = DesktopTheme.BACKGROUND;
     private final SchoolFacade school;
     private final Runnable onMutation;
     private final JTabbedPane tabs = new JTabbedPane();
@@ -95,6 +95,8 @@ public final class SchoolPanel extends JPanel {
         heading.add(row(demo), BorderLayout.EAST);
         add(heading, BorderLayout.NORTH);
         tabs.setFont(tabs.getFont().deriveFont(Font.BOLD, 13f));
+        tabs.setForeground(INK);
+        tabs.setBackground(BACKGROUND);
         tabs.addTab("Overview", overview());
         tabs.addTab("Users", users());
         tabs.addTab("Courses", courses());
@@ -422,6 +424,10 @@ public final class SchoolPanel extends JPanel {
     }
     private static JScrollPane table(DefaultTableModel model) {
         JTable table = new JTable(model);
+        table.setForeground(INK);
+        table.setBackground(DesktopTheme.SURFACE);
+        table.setSelectionForeground(DesktopTheme.SURFACE);
+        table.setSelectionBackground(TEAL);
         table.setRowHeight(31);
         table.setAutoCreateRowSorter(true);
         table.setFillsViewportHeight(true);
@@ -429,6 +435,7 @@ public final class SchoolPanel extends JPanel {
         table.setGridColor(new Color(228, 235, 239));
         table.setIntercellSpacing(new Dimension(8, 1));
         table.getTableHeader().setFont(table.getFont().deriveFont(Font.BOLD));
+        table.getTableHeader().setForeground(INK);
         for (int i = 0; i < table.getColumnCount(); i++) {
             String heading = model.getColumnName(i);
             var column = table.getColumnModel().getColumn(i);
@@ -443,12 +450,15 @@ public final class SchoolPanel extends JPanel {
             column.setPreferredWidth(preferred);
         }
         JScrollPane scroll = new JScrollPane(table);
+        scroll.getViewport().setBackground(DesktopTheme.SURFACE);
         scroll.setColumnHeaderView(table.getTableHeader());
         scroll.setPreferredSize(new Dimension(800, 250));
         return scroll;
     }
     private static JTextArea textArea() {
         JTextArea area = new JTextArea();
+        area.setForeground(INK);
+        area.setBackground(DesktopTheme.SURFACE);
         area.setEditable(false);
         area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
         area.setMargin(new Insets(16, 18, 16, 18));
