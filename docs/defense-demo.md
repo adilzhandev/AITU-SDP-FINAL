@@ -19,6 +19,22 @@ Start `java Run.java --memory`, then select:
 8. **5**, **S1**, **C1**: duplicate enrollment is rejected. **7** with category **unknown** for C1 is rejected without extra notifications.
 9. **0**: exit. For persistence use normal mode instead of `--memory`, then restart and verify the records remain.
 
+## Visual desktop walkthrough
+
+Start `java Run.java gui --demo` to open the same school in Swing:
+
+1. Inspect the dashboard counts, profiles and configured courses.
+2. Open grades for S1/C1 and S1/C2 to compare 78% weighted and 80% points results.
+3. Record another assessment for an enrolled student, then inspect Notifications
+   and the activity log to show both Observer consumers.
+4. Open Reports and toggle attendance and comments to show all four Decorator combinations.
+5. Try a duplicate enrollment or invalid grade; show the validation message.
+6. For a persistent demonstration use `java Run.java gui --data data/defense.properties`,
+   load demo data into the empty school, close, and reopen the same file.
+
+This interface delegates to the same facade and six patterns as the console.
+Use `gui --demo` for a disposable demonstration; use persistent mode to keep changes.
+
 ## Ownership
 
 | Member | Explain and demonstrate |

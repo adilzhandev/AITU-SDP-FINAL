@@ -19,6 +19,8 @@ public final class AllTests {
         System.out.println("PASS interactive console and input recovery");
         ConsolePersistenceTest.run();
         System.out.println("PASS failed-save exit and recovery");
-        System.out.println("ALL 7 TEST SUITES PASSED");
+        DesktopSessionTest.run();
+        System.out.println("PASS desktop autosave, locking and recovery");
+        System.out.println("ALL 8 TEST SUITES PASSED");
     }
 }

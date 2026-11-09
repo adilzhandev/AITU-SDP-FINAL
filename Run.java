@@ -49,6 +49,7 @@ public final class Run {
         boolean buildOnly = mode.equals("build");
         boolean tests = mode.equals("test");
         boolean demo = mode.equals("demo");
+        boolean gui = mode.equals("gui");
         if ((buildOnly || tests || demo) && args.length != 1) {
             System.err.println("Launcher commands build, test and demo do not accept extra arguments.");
             System.err.println("Use java Run.java --help for application options.");
@@ -88,9 +89,11 @@ public final class Run {
         String executable = File.separatorChar == '\\' ? "java.exe" : "java";
         Path java = Path.of(System.getProperty("java.home"), "bin", executable);
         List<String> command = new ArrayList<>(List.of(java.toString(), "-Dfile.encoding=UTF-8", "-cp",
-                output.toString(), tests ? "school.AllTests" : "school.Main"));
+                output.toString(), tests ? "school.AllTests" : gui ? "school.GuiMain" : "school.Main"));
         if (demo) {
             command.add("--demo");
+        } else if (gui) {
+            command.addAll(List.of(args).subList(1, args.length));
         } else if (!tests) {
             command.addAll(List.of(args));
         }
