@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import school.validation.TextRules;
 
 /** Shared validation used by the course builder and the weighted strategy. */
 public final class GradingRules {
@@ -20,15 +21,17 @@ public final class GradingRules {
         if (weights == null || weights.isEmpty()) {
             throw new IllegalArgumentException("Weighted grading requires category weights.");
         }
+        if (weights.size() > TextRules.MAX_WEIGHTS) {
+            throw new IllegalArgumentException("Too many weight categories.");
+        }
         Map<String, Double> normalized = new TreeMap<>();
         BigDecimal sum = BigDecimal.ZERO;
         for (Map.Entry<String, Double> entry : weights.entrySet()) {
             String category = entry.getKey();
             Double weight = entry.getValue();
-            if (category == null || category.isBlank()) {
-                throw new IllegalArgumentException("Weight categories must not be blank.");
-            }
-            category = category.strip().toLowerCase(Locale.ROOT);
+            category = TextRules.required(category, "Weight category", TextRules.CATEGORY_MAX)
+                    .toLowerCase(Locale.ROOT);
+            category = TextRules.required(category, "Weight category", TextRules.CATEGORY_MAX);
             if (weight == null || !Double.isFinite(weight) || weight <= 0) {
                 throw new IllegalArgumentException("Category weights must be positive finite numbers.");
             }

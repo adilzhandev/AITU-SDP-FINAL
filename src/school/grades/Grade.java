@@ -1,14 +1,17 @@
 package school.grades;
 
 import java.util.Locale;
+import school.validation.TextRules;
 
 /** One assessment result. Categories use a stable, case-insensitive identifier. */
-public record Grade(String studentId, String courseId, String category,
+public record Grade(long id, String studentId, String courseId, String category,
                     double earned, double possible, String comment) {
     public Grade {
-        studentId = required(studentId, "Student ID");
-        courseId = required(courseId, "Course ID");
-        category = required(category, "Category").toLowerCase(Locale.ROOT);
+        if (id < 0) throw new IllegalArgumentException("Grade ID must not be negative.");
+        studentId = TextRules.required(studentId, "Student ID", TextRules.ID_MAX);
+        courseId = TextRules.required(courseId, "Course ID", TextRules.ID_MAX);
+        category = TextRules.required(category, "Category", TextRules.CATEGORY_MAX).toLowerCase(Locale.ROOT);
+        category = TextRules.required(category, "Category", TextRules.CATEGORY_MAX);
         if (!Double.isFinite(earned) || !Double.isFinite(possible)) {
             throw new IllegalArgumentException("Grade points must be finite numbers.");
         }
@@ -16,13 +19,12 @@ public record Grade(String studentId, String courseId, String category,
             throw new IllegalArgumentException(
                     "Possible points must be positive; earned points must be between 0 and possible points.");
         }
-        comment = comment == null ? "" : comment.strip();
+        comment = TextRules.optional(comment, "Comment", TextRules.COMMENT_MAX);
     }
 
-    private static String required(String value, String label) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(label + " is required.");
-        }
-        return value.strip();
+    /** New assessments receive a stable positive ID when recorded by the facade. */
+    public Grade(String studentId, String courseId, String category,
+                 double earned, double possible, String comment) {
+        this(0, studentId, courseId, category, earned, possible, comment);
     }
 }

@@ -70,6 +70,11 @@ Unknown weighted categories are rejected. Each calculation accepts grades for
 one student in one course; the facade filters the stored grades accordingly.
 The `Grade` record rejects nonfinite points, nonpositive maximum scores, and
 earned scores outside the interval from zero to the maximum.
+Each stored grade also has a stable positive numeric ID. The six-argument
+constructor creates an unassigned grade (`id = 0`); the facade assigns its ID
+when recording it. Editing creates a validated replacement with the same ID,
+student and course. Text limits and Unicode validation apply to courses and grades
+before they can enter saved school data.
 
 Totals use standard-library `BigDecimal` so adding large valid values does not
 overflow to infinity. Weight sums allow a tolerance of 0.000001 percentage points;

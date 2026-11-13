@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import school.grades.GradingMode;
 import school.grades.GradingRules;
+import school.validation.TextRules;
 
 /** Builder: assembles a valid course from required and optional configuration. */
 public final class CourseBuilder {
@@ -31,17 +32,17 @@ public final class CourseBuilder {
     }
 
     public Course build() {
-        String courseId = required(id, "Course ID");
-        String courseTitle = required(title, "Course title");
-        String teacher = required(teacherId, "Teacher ID");
+        String courseId = TextRules.required(id, "Course ID", TextRules.ID_MAX);
+        String courseTitle = TextRules.required(title, "Course title", TextRules.TITLE_MAX);
+        String teacher = TextRules.required(teacherId, "Teacher ID", TextRules.ID_MAX);
         if (gradingMode == null) {
             throw new IllegalArgumentException("Grading mode is required.");
         }
         if (capacity <= 0) {
             throw new IllegalArgumentException("Course capacity must be positive.");
         }
-        String courseSchedule = schedule == null || schedule.isBlank()
-                ? "Not scheduled" : schedule.strip();
+        String courseSchedule = TextRules.optional(schedule, "Schedule", TextRules.SCHEDULE_MAX);
+        if (courseSchedule.isBlank()) courseSchedule = "Not scheduled";
         Map<String, Double> courseWeights;
         if (gradingMode == GradingMode.WEIGHTED) {
             courseWeights = GradingRules.validatedWeights(weights);
@@ -55,10 +56,4 @@ public final class CourseBuilder {
                 gradingMode, capacity, courseWeights);
     }
 
-    private static String required(String value, String label) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(label + " is required.");
-        }
-        return value.strip();
-    }
 }
