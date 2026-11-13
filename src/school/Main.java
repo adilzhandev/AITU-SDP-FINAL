@@ -19,7 +19,6 @@ public final class Main {
             System.out.println("Default: interactive menu, autosave to data/school.properties.");
             System.out.println("--memory: interactive menu without persistence.");
             System.out.println("--demo: reproducible demonstration; never reads or writes your saved data.");
-            System.out.println("Desktop interface: java Run.java gui [--memory | --demo | --data FILE]");
             return;
         }
         if (args.length == 1 && args[0].equals("--demo")) {

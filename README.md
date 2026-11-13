@@ -1,6 +1,6 @@
 # School Management System
 
-A console and Swing desktop application written in pure Java for the Software Design Patterns final
+A console application written in pure Java for the Software Design Patterns final
 project. Six design patterns work together in one application. It uses only the
 JDK standard library: no framework, external database, or third-party dependency.
 
@@ -12,16 +12,12 @@ Java launcher on Windows, macOS, and Linux.
 
 ```text
 java Run.java
-java Run.java gui --demo
-java Run.java gui
 java Run.java demo
 java Run.java test
 java Run.java build
 ```
 
 - No arguments: compile and start the interactive menu with persistent storage.
-- `gui --demo`: open the desktop interface with fictional sample data in memory.
-- `gui`: open the desktop interface with the same persistent storage as the console.
 - `demo`: run a reproducible demonstration of all six patterns without reading or
   changing saved data.
 - `test`: compile the application and tests, then run `school.AllTests`.
@@ -31,38 +27,9 @@ The launcher uses the compiler provided by the JDK, targets Java 17, and forward
 the launched application's exit status. No shell script or package manager is needed.
 
 **Быстрый запуск:** установите JDK 17 или новее, откройте терминал в папке проекта
-и выполните `java Run.java gui --demo` для наглядной демонстрации в окне.
-Для сохранения данных используйте `java Run.java gui`, для консоли —
-`java Run.java`, для проверок — `java Run.java test`. Оба интерфейса написаны
-на Java, без сторонних библиотек.
-
-## Desktop interface
-
-The desktop uses Swing and the bundled Nimbus light theme from the JDK, so its
-controls remain readable with either a light or dark operating-system theme.
-It is a local application window, not a
-website, and requires a graphical desktop. The six existing patterns and
-`SchoolFacade` are shared with the console.
-
-```text
-java Run.java gui --demo
-java Run.java gui --memory
-java Run.java gui --data "data/my-school.properties"
-java Run.java gui --help
-```
-
-Use the tabs to inspect the dashboard, create profiles and courses, enroll
-students, record grades and attendance, compose reports, and view notifications.
-**Load demo data** is available only for an empty school. `gui --demo` starts
-with the sample school without reading or writing your normal snapshot.
-
-Persistent mode saves after each successful change. The status bar reports
-unsaved changes if saving fails; **Save now** retries. **Save backup copy** lets
-you choose a destination and exports a complete snapshot there. Existing files
-require overwrite confirmation, and an in-use destination is rejected.
-Closing with unsaved changes offers backup, discard, or cancel. A console and
-desktop window cannot edit the same data file simultaneously because they use
-the same exclusive session lock.
+и выполните `java Run.java`. Для готовой демонстрации используйте
+`java Run.java demo`, для проверок — `java Run.java test`. Приложение полностью
+консольное, на Java, без сторонних библиотек.
 
 ## Application modes
 
@@ -123,8 +90,7 @@ and be able to explain their two patterns and their interaction with the project
 ```text
 Run.java                       Java build/test/run launcher
 src/school/Main.java           Application entry point
-src/school/GuiMain.java        Swing desktop entry point
-src/school/ui/                 Console menu, Swing view and desktop session
+src/school/ui/                 Console menu and input handling
 src/school/users/              User profiles and factories
 src/school/courses/            Course and explicit builder
 src/school/grades/             Assessment records and grading strategies
@@ -152,8 +118,7 @@ from saved grade records when loading.
 ## Verification and defense materials
 
 Run `java Run.java test` to check module behavior, facade integration, report
-composition, console input, file persistence, and file locking. The tests also
-cover desktop autosave, failed-save recovery, and lock release. The executable
+composition, console input, file persistence, and file locking. The executable
 demo is a short defense scenario: create profiles, build courses, enroll a
 student, record grades, notify observers, and compose a report.
 
