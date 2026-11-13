@@ -41,6 +41,8 @@ Example: creating a student through `UserFactory.forRole(Role.STUDENT).create(..
 
 The email check is deliberately a basic address-format check for this demo; it does not verify mailbox existence. Invalid or missing fields raise `IllegalArgumentException`; a null factory role raises `NullPointerException`.
 
+Shared `TextRules` bounds IDs, names and email lengths and rejects unpaired UTF-16 surrogates before data enters the application. Email validation rejects Unicode whitespace inside addresses. Valid Unicode names remain supported, including supplementary characters; the integration tests verify UTF-8 save/load round trips.
+
 ## Observer
 
 `EventPublisher` maintains a set of `SchoolObserver` subscribers. An observer can subscribe or unsubscribe at runtime. Repeated subscription of the same observer does not duplicate delivery. Events are dispatched synchronously in subscription order to a snapshot of the subscribers, so subscription changes during a callback take effect on the next event.
@@ -82,7 +84,7 @@ classDiagram
     NotificationCenter *-- Notification : stores
 ```
 
-The integration contract is that the school facade publishes an event only after a grade has passed validation and has been saved. A rejected grade must not produce a notification. That save/publish ordering belongs to the facade's integration checks, not to these standalone observer classes.
+The integration contract is that the school facade publishes an event only after a grade has passed validation and has been recorded in memory. Corrections update the same assessment and publish one correction event to both observers. Rejected grades, invalid corrections and snapshot-capacity failures produce no events. Disk autosave happens afterward in the console; if it fails, the current records and events remain in memory for retry or recovery. These ordering rules belong to the facade's integration checks, not to the standalone observer classes.
 
 This is an in-process Observer implementation with no message queue or external service. If an observer throws an exception, publication propagates the exception and later observers are not invoked. The built-in observers reject null input and otherwise perform only local list updates.
 

@@ -2,10 +2,12 @@ package school.users;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
+import school.validation.TextRules;
 
 /** Immutable base product created by the user factories. */
 public abstract class User {
-    private static final Pattern EMAIL = Pattern.compile("[^\\s@]+@[^\\s@.]+(?:\\.[^\\s@.]+)+");
+    private static final Pattern EMAIL = Pattern.compile("[^\\s@]+@[^\\s@.]+(?:\\.[^\\s@.]+)+",
+            Pattern.UNICODE_CHARACTER_CLASS);
 
     private final String id;
     private final String name;
@@ -36,14 +38,12 @@ public abstract class User {
     }
 
     static String requiredText(String value, String field) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(field + " must not be blank");
-        }
-        return value.strip();
+        return TextRules.required(value, field,
+                field.equals("id") ? TextRules.ID_MAX : TextRules.NAME_MAX);
     }
 
-    static String validatedEmail(String value) {
-        String email = requiredText(value, "email");
+    public static String validatedEmail(String value) {
+        String email = TextRules.required(value, "email", TextRules.EMAIL_MAX);
         if (!EMAIL.matcher(email).matches()) {
             throw new IllegalArgumentException("email must have a valid address format");
         }
