@@ -40,14 +40,14 @@ public final class ConsoleTest {
 
     private static void recoversFromInvalidMenuAndActionInput() throws Exception {
         SchoolFacade school = new SchoolFacade();
-        String output = runConsole(school, "banana\n99\n2\n8\n2\n1\nS1\nStudent\ninvalid-email\n1\n0\n");
+        String output = runConsole(school, "banana\n99\n2\n8\n1\nS1\nStudent\ninvalid-email\nstudent@school.test\n1\n0\n");
         check(output.contains("Enter a whole number."), "Non-numeric menu choice is explained");
         check(output.contains("Choose a number from the menu."), "Unknown menu action is handled");
-        check(output.contains("Role must be 1, 2 or 3."), "Invalid role returns to menu");
+        check(output.contains("Role must be 1, 2 or 3."), "Invalid role prompts again");
         check(output.contains("email must have a valid address format"), "Invalid email is explained");
-        check(output.contains("No users."), "A later valid menu action still works");
+        check(output.contains("S1 | STUDENT | Student | student@school.test"), "Corrected form retains role, ID and name");
         check(output.contains("Goodbye."), "Console exits normally after invalid input");
-        check(school.getUsers().isEmpty(), "Failed create-user action must leave no user behind");
+        check(school.getUsers().size() == 1, "Correcting an invalid field creates exactly one user");
     }
 
     private static void runsDemoReportAndNotificationFlow() throws Exception {
@@ -97,12 +97,11 @@ public final class ConsoleTest {
     private static void validatesNormalizedWeightCategoriesAndRecovers() throws Exception {
         SchoolFacade school = new SchoolFacade();
         school.addUser(Role.TEACHER, "T1", "Teacher", "teacher@school.test");
-        String invalidCourse = "4\nC1\nDuplicate categories\nT1\n\n\n2\nExam=50, exam =50\n";
-        String validCourse = "4\nC2\nWeighted Course\nT1\n\n\n2\n HOMEWORK =40, EXAM=60\n";
-        String output = runConsole(school, invalidCourse + validCourse + "3\n0\n");
+        String input = "4\nC2\nWeighted Course\nT1\n\n\n2\nExam=50, exam =50\nexam=90\n HOMEWORK =40, EXAM=60\n3\n0\n";
+        String output = runConsole(school, input);
         check(output.contains("Duplicate category: exam"), "Weights reject duplicates after normalization");
         check(school.getCourses().size() == 1 && school.findCourse("C2").getGradingMode() == GradingMode.WEIGHTED,
-                "Invalid course must not be saved; next valid course is created");
+                "Corrected weights preserve the course form and create one course");
         check(school.findCourse("C2").getWeights().get("homework") == 40.0
                 && school.findCourse("C2").getWeights().get("exam") == 60.0,
                 "Valid categories are normalized and keep their entered weights");

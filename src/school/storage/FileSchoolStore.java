@@ -9,6 +9,7 @@ import school.grades.Grade;
 import school.grades.GradingMode;
 import school.users.Role;
 import school.users.User;
+import school.validation.TextRules;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +21,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -34,15 +36,17 @@ import java.util.Set;
 
 /** Stores a complete school snapshot using only the Java standard library. */
 public final class FileSchoolStore {
-    private static final String VERSION = "1";
-    private static final int MAX_BYTES = 10 * 1024 * 1024;
-    private static final int MAX_RECORDS = 100_000;
-    private static final int MAX_WEIGHTS = 1_000;
+    private static final String VERSION = "2";
+    private static final int MAX_BYTES = TextRules.MAX_FILE_BYTES;
+    private static final int MAX_RECORDS = TextRules.MAX_RECORDS;
+    private static final int MAX_WEIGHTS = TextRules.MAX_WEIGHTS;
 
     /** Serializes completely before replacing the destination file. */
     public void save(SchoolFacade school, Path path) throws IOException {
         Objects.requireNonNull(school, "school");
         Objects.requireNonNull(path, "path");
+        Path destination = path.toAbsolutePath().normalize();
+        rejectSymbolicLink(destination);
         Properties data = new Properties();
         data.setProperty("version", VERSION);
         try {
@@ -94,6 +98,7 @@ public final class FileSchoolStore {
             for (int i = 0; i < grades.size(); i++) {
                 Grade grade = grades.get(i);
                 String key = "grades." + i + ".";
+                put(data, key + "id", grade.id());
                 put(data, key + "studentId", grade.studentId());
                 put(data, key + "courseId", grade.courseId());
                 put(data, key + "category", grade.category());
@@ -120,7 +125,6 @@ public final class FileSchoolStore {
         if (content.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) {
             throw new IOException("School data exceeds the 10 MiB file limit");
         }
-        Path destination = path.toAbsolutePath().normalize();
         Path directory = destination.getParent();
         if (directory == null || destination.getFileName() == null) {
             throw new IOException("A file path is required");
@@ -131,6 +135,7 @@ public final class FileSchoolStore {
             try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
                 writer.write(content);
             }
+            rejectSymbolicLink(destination);
             try {
                 Files.move(temporary, destination, StandardCopyOption.ATOMIC_MOVE,
                         StandardCopyOption.REPLACE_EXISTING);
@@ -145,8 +150,10 @@ public final class FileSchoolStore {
     /** Loads into a new facade, so an invalid file never partially changes live data. */
     public SchoolFacade load(Path path) throws IOException {
         Objects.requireNonNull(path, "path");
+        Path source = path.toAbsolutePath().normalize();
+        rejectSymbolicLink(source);
         byte[] bytes;
-        try (InputStream input = Files.newInputStream(path)) {
+        try (InputStream input = Files.newInputStream(source, LinkOption.NOFOLLOW_LINKS)) {
             bytes = input.readNBytes(MAX_BYTES + 1);
         } catch (NoSuchFileException exception) {
             return new SchoolFacade();
@@ -161,9 +168,15 @@ public final class FileSchoolStore {
         Properties data = new Properties();
         try {
             data.load(new StringReader(content));
-            if (!VERSION.equals(required(data, "version"))) {
+            for (String key : data.stringPropertyNames()) {
+                TextRules.validateUnicode(key, "School data key");
+                TextRules.validateUnicode(data.getProperty(key), key);
+            }
+            String version = required(data, "version");
+            if (!VERSION.equals(version) && !"1".equals(version)) {
                 throw new IOException("Unsupported school data version");
             }
+            boolean legacy = "1".equals(version);
             int userCount = count(data, "users.count", MAX_RECORDS);
             int courseCount = count(data, "courses.count", MAX_RECORDS);
             int enrollmentCount = count(data, "enrollments.count", MAX_RECORDS);
@@ -171,7 +184,7 @@ public final class FileSchoolStore {
             int attendanceCount = count(data, "attendance.count", MAX_RECORDS);
             checkTotal(userCount, courseCount, enrollmentCount, gradeCount, attendanceCount);
             long expectedFields = 6 + 4L * userCount + 7L * courseCount
-                    + 2L * enrollmentCount + 6L * gradeCount + 4L * attendanceCount;
+                    + 2L * enrollmentCount + (legacy ? 6L : 7L) * gradeCount + 4L * attendanceCount;
             SchoolFacade school = new SchoolFacade();
             for (int i = 0; i < userCount; i++) {
                 String key = "users." + i + ".";
@@ -206,7 +219,8 @@ public final class FileSchoolStore {
             }
             for (int i = 0; i < gradeCount; i++) {
                 String key = "grades." + i + ".";
-                school.recordGrade(new Grade(required(data, key + "studentId"),
+                long id = legacy ? i + 1L : positiveLong(data, key + "id");
+                school.recordGrade(new Grade(id, required(data, key + "studentId"),
                         required(data, key + "courseId"), required(data, key + "category"),
                         number(data, key + "earned"), number(data, key + "possible"),
                         required(data, key + "comment")));
@@ -269,6 +283,20 @@ public final class FileSchoolStore {
             throw new IOException("Expected a finite number: " + key);
         }
         return value;
+    }
+
+    private static long positiveLong(Properties data, String key) throws IOException {
+        long value = Long.parseLong(required(data, key));
+        if (value <= 0) {
+            throw new IOException("Expected a positive grade ID: " + key);
+        }
+        return value;
+    }
+
+    private static void rejectSymbolicLink(Path path) throws IOException {
+        if (Files.isSymbolicLink(path)) {
+            throw new IOException("School data file must not be a symbolic link: " + path);
+        }
     }
 
     private static void checkTotal(int... counts) throws IOException {

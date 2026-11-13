@@ -81,10 +81,14 @@ public final class StorageTest {
                     "Failed loads must preserve the valid original file");
 
             SchoolFacade oversized = new SchoolFacade();
-            oversized.addUser(Role.STUDENT, "BIG", "A".repeat(10 * 1024 * 1024 + 1), "big@school.test");
-            expectIOException(() -> store.save(oversized, original));
+            try {
+                oversized.addUser(Role.STUDENT, "BIG", "A".repeat(10 * 1024 * 1024 + 1), "big@school.test");
+                throw new AssertionError("Oversized values must be rejected before mutation");
+            } catch (IllegalArgumentException expected) {
+                check(oversized.getUsers().isEmpty(), "Rejected values must not change live data");
+            }
             check(Arrays.equals(originalBytes, Files.readAllBytes(original)),
-                    "Failed serialization must preserve the destination file");
+                    "Rejected oversized input must preserve the destination file");
             checkNoTemporaryFiles(directory);
 
             Path nested = directory.resolve("new/subdirectory/snapshot.properties");

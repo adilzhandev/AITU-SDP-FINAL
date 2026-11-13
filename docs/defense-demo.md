@@ -16,8 +16,10 @@ Start `java Run.java --memory`, then select:
 5. **7**: add a valid assessment for S2/C1, category homework, earned80, maximum100, optional comment.
 6. **11**, **S2**: view the new student notification. **11**, **T1**: view teacher notifications. **12**: show the second independent Observer, the activity log.
 7. **10**, **S1**, **n**, **n**: base report. Repeat with **y/n**, **n/y** and **y/y** to show the two composable Decorators.
-8. **5**, **S1**, **C1**: duplicate enrollment is rejected. **7** with category **unknown** for C1 is rejected without extra notifications.
-9. **0**: exit. For persistence use normal mode instead of `--memory`, then restart and verify the records remain.
+8. **5**, **S1**, **C1**: duplicate enrollment is rejected; use **/cancel** to return. **7** with category **unknown** for C1 retries that field without extra notifications; use **/cancel** again.
+9. **15**, **S1**, **C1**, grade **1**: leave the category blank, enter earned **100**, leave maximum points blank, and enter a correction comment. The grade ID stays **1**, the assessment count stays **2**, and the weighted result becomes **82.00%**. Show the correction notifications with **11**.
+10. **16**, **S1**, **y**, **y**, **1**: choose a new path such as `reports/S1.txt`. Repeat with format **2** and `reports/S1.csv`. Existing output paths are rejected; provide a new path or cancel.
+11. **0**: exit. For persistence use normal mode instead of `--memory`, then restart and verify the corrected result and grade IDs remain. Correction-event history itself is session-only.
 
 ## Ownership
 

@@ -1,12 +1,11 @@
 package school.application;
 
+import school.validation.TextRules;
+
 /** A student can be enrolled in a course only once. */
 public record Enrollment(String studentId, String courseId) {
     public Enrollment {
-        if (studentId == null || studentId.isBlank() || courseId == null || courseId.isBlank()) {
-            throw new IllegalArgumentException("Student and course IDs are required.");
-        }
-        studentId = studentId.strip();
-        courseId = courseId.strip();
+        studentId = TextRules.required(studentId, "Student ID", TextRules.ID_MAX);
+        courseId = TextRules.required(courseId, "Course ID", TextRules.ID_MAX);
     }
 }

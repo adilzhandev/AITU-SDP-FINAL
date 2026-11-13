@@ -1,6 +1,6 @@
 package school.application;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -25,14 +25,20 @@ import school.reports.StudentReport;
 import school.users.Role;
 import school.users.User;
 import school.users.UserFactory;
+import school.validation.TextRules;
 
 /** Facade: coordinates user creation, enrollment, grading, events and report composition. */
 public final class SchoolFacade {
     private final Map<String, User> users = new LinkedHashMap<>();
+    private final Set<String> emails = new LinkedHashSet<>();
     private final Map<String, Course> courses = new LinkedHashMap<>();
     private final Set<Enrollment> enrollments = new LinkedHashSet<>();
-    private final List<Grade> grades = new ArrayList<>();
-    private final List<Attendance> attendance = new ArrayList<>();
+    private final Map<String, Integer> enrollmentCounts = new LinkedHashMap<>();
+    private final Map<Long, Grade> grades = new LinkedHashMap<>();
+    private final Map<Enrollment, LinkedHashMap<Long, Grade>> gradesByEnrollment = new LinkedHashMap<>();
+    private final Map<AttendanceKey, Attendance> attendance = new LinkedHashMap<>();
+    private final SnapshotBudget snapshotBudget = new SnapshotBudget();
+    private long nextGradeId = 1;
     private final EventPublisher events = new EventPublisher();
     private final NotificationCenter notifications = new NotificationCenter();
     private final ActivityLogObserver activityLog = new ActivityLogObserver();
@@ -45,10 +51,13 @@ public final class SchoolFacade {
     public User addUser(Role role, String id, String name, String email) {
         User user = UserFactory.forRole(role).create(id, name, email);
         if (users.containsKey(user.getId())) throw new IllegalArgumentException("User ID already exists.");
-        if (users.values().stream().anyMatch(existing -> existing.getEmail().equalsIgnoreCase(user.getEmail()))) {
+        String emailKey = emailKey(user.getEmail());
+        if (emails.contains(emailKey)) {
             throw new IllegalArgumentException("Email already belongs to another user.");
         }
+        snapshotBudget.add(SnapshotBudget.cost(user));
         users.put(user.getId(), user);
+        emails.add(emailKey);
         return user;
     }
 
@@ -56,6 +65,7 @@ public final class SchoolFacade {
         Objects.requireNonNull(course, "Course is required.");
         requireRole(course.getTeacherId(), Role.TEACHER);
         if (courses.containsKey(course.getId())) throw new IllegalArgumentException("Course ID already exists.");
+        snapshotBudget.add(SnapshotBudget.cost(course));
         courses.put(course.getId(), course);
     }
 
@@ -64,34 +74,70 @@ public final class SchoolFacade {
         requireRole(enrollment.studentId(), Role.STUDENT);
         Course course = findCourse(enrollment.courseId());
         if (enrollments.contains(enrollment)) throw new IllegalArgumentException("Student is already enrolled.");
-        long size = enrollments.stream().filter(item -> item.courseId().equals(course.getId())).count();
+        int size = enrollmentCounts.getOrDefault(course.getId(), 0);
         if (size >= course.getCapacity()) throw new IllegalArgumentException("Course is full.");
+        snapshotBudget.add(SnapshotBudget.cost(enrollment));
         enrollments.add(enrollment);
+        enrollmentCounts.put(course.getId(), size + 1);
+        gradesByEnrollment.put(enrollment, new LinkedHashMap<>());
     }
 
-    public void recordGrade(Grade grade) {
+    public Grade recordGrade(Grade grade) {
         Objects.requireNonNull(grade, "Grade is required.");
-        requireEnrollment(grade.studentId(), grade.courseId());
+        Enrollment enrollment = requireEnrollment(grade.studentId(), grade.courseId());
         Course course = findCourse(grade.courseId());
-        if (course.getGradingMode() == GradingMode.WEIGHTED && !course.getWeights().containsKey(grade.category())) {
-            throw new IllegalArgumentException("Category must be one of: " + course.getWeights().keySet());
+        validateCategory(course, grade.category());
+        if (grade.id() == 0) {
+            if (nextGradeId == 0) throw new IllegalArgumentException("No automatic grade IDs remain.");
+            grade = new Grade(nextGradeId, grade.studentId(), grade.courseId(), grade.category(),
+                    grade.earned(), grade.possible(), grade.comment());
         }
-        // Calculate before changing state: invalid data must not create grades or notifications.
-        List<Grade> prospective = new ArrayList<>(getStudentGrades(grade.studentId(), grade.courseId()));
-        prospective.add(grade);
-        GradingStrategies.forMode(course.getGradingMode()).calculate(prospective, course.getWeights());
-        grades.add(grade);
+        if (grades.containsKey(grade.id())) throw new IllegalArgumentException("Grade ID already exists.");
         String message = String.format(Locale.ROOT, "%s: %s received %.2f/%.2f in %s",
                 course.getTitle(), findUser(grade.studentId()).getName(), grade.earned(), grade.possible(), grade.category());
-        events.publish(new SchoolEvent(grade.studentId(), course.getTeacherId(), course.getId(), message));
+        SchoolEvent event = new SchoolEvent(grade.studentId(), course.getTeacherId(), course.getId(), message);
+        snapshotBudget.add(SnapshotBudget.cost(grade));
+        grades.put(grade.id(), grade);
+        gradesByEnrollment.get(enrollment).put(grade.id(), grade);
+        if (nextGradeId != 0 && grade.id() >= nextGradeId) {
+            nextGradeId = grade.id() == Long.MAX_VALUE ? 0 : grade.id() + 1;
+        }
+        events.publish(event);
+        return grade;
+    }
+
+    public Grade findGrade(long id) {
+        Grade grade = grades.get(id);
+        if (grade == null) throw new IllegalArgumentException("Grade not found: " + id);
+        return grade;
+    }
+
+    /** Corrects one assessment without changing its identity, student or course. */
+    public Grade updateGrade(long id, String category, double earned, double possible, String comment) {
+        Grade previous = findGrade(id);
+        Grade updated = new Grade(id, previous.studentId(), previous.courseId(), category, earned, possible, comment);
+        Course course = findCourse(previous.courseId());
+        validateCategory(course, updated.category());
+        String message = String.format(Locale.ROOT, "%s: grade #%d for %s corrected to %.2f/%.2f in %s",
+                course.getTitle(), id, findUser(updated.studentId()).getName(),
+                updated.earned(), updated.possible(), updated.category());
+        SchoolEvent event = new SchoolEvent(updated.studentId(), course.getTeacherId(), course.getId(), message);
+        snapshotBudget.replace(SnapshotBudget.cost(previous), SnapshotBudget.cost(updated));
+        grades.put(id, updated);
+        gradesByEnrollment.get(new Enrollment(updated.studentId(), updated.courseId())).put(id, updated);
+        events.publish(event);
+        return updated;
     }
 
     public void recordAttendance(Attendance entry) {
         Objects.requireNonNull(entry, "Attendance is required.");
         requireEnrollment(entry.studentId(), entry.courseId());
-        attendance.removeIf(old -> old.studentId().equals(entry.studentId())
-                && old.courseId().equals(entry.courseId()) && old.date().equals(entry.date()));
-        attendance.add(entry);
+        AttendanceKey key = new AttendanceKey(entry.studentId(), entry.courseId(), entry.date());
+        Attendance previous = attendance.get(key);
+        if (previous == null) snapshotBudget.add(SnapshotBudget.cost(entry));
+        else snapshotBudget.replace(SnapshotBudget.cost(previous), SnapshotBudget.cost(entry));
+        attendance.remove(key);
+        attendance.put(key, entry);
     }
 
     public double calculateFinalGrade(String studentId, String courseId) {
@@ -109,9 +155,9 @@ public final class SchoolFacade {
                         getStudentGrades(student.getId(), item.courseId()).size())).toList();
         StudentReport report = new BasicStudentReport(student, results);
         if (includeAttendance) report = new AttendanceReportDecorator(report,
-                attendance.stream().filter(item -> item.studentId().equals(student.getId())).toList());
+                attendance.values().stream().filter(item -> item.studentId().equals(student.getId())).toList());
         if (includeComments) report = new CommentsReportDecorator(report,
-                grades.stream().filter(item -> item.studentId().equals(student.getId())).toList());
+                grades.values().stream().filter(item -> item.studentId().equals(student.getId())).toList());
         return report.render();
     }
 
@@ -130,8 +176,8 @@ public final class SchoolFacade {
     public List<User> getUsers() { return List.copyOf(users.values()); }
     public List<Course> getCourses() { return List.copyOf(courses.values()); }
     public List<Enrollment> getEnrollments() { return List.copyOf(enrollments); }
-    public List<Grade> getGrades() { return List.copyOf(grades); }
-    public List<Attendance> getAttendance() { return List.copyOf(attendance); }
+    public List<Grade> getGrades() { return List.copyOf(grades.values()); }
+    public List<Attendance> getAttendance() { return List.copyOf(attendance.values()); }
     public List<String> getActivityLog() { return activityLog.getEntries(); }
 
     public List<Notification> getNotifications(String userId) {
@@ -140,8 +186,7 @@ public final class SchoolFacade {
 
     public List<Grade> getStudentGrades(String studentId, String courseId) {
         Enrollment enrollment = requireEnrollment(studentId, courseId);
-        return grades.stream().filter(grade -> grade.studentId().equals(enrollment.studentId())
-                && grade.courseId().equals(enrollment.courseId())).toList();
+        return List.copyOf(gradesByEnrollment.get(enrollment).values());
     }
 
     private User requireRole(String id, Role role) {
@@ -157,7 +202,22 @@ public final class SchoolFacade {
     }
 
     private static String normalizeId(String id) {
-        if (id == null || id.isBlank()) throw new IllegalArgumentException("ID is required.");
-        return id.strip();
+        return TextRules.required(id, "ID", TextRules.ID_MAX);
     }
+
+    private static void validateCategory(Course course, String category) {
+        if (course.getGradingMode() == GradingMode.WEIGHTED && !course.getWeights().containsKey(category)) {
+            throw new IllegalArgumentException("Category must be one of: " + course.getWeights().keySet());
+        }
+    }
+
+    private static String emailKey(String email) {
+        // Match equalsIgnoreCase without locale-sensitive expansion (including Unicode I variants).
+        StringBuilder key = new StringBuilder(email.length());
+        email.codePoints().forEach(codePoint ->
+                key.appendCodePoint(Character.toLowerCase(Character.toUpperCase(codePoint))));
+        return key.toString();
+    }
+
+    private record AttendanceKey(String studentId, String courseId, LocalDate date) { }
 }

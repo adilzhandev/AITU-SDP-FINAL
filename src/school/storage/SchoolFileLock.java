@@ -33,6 +33,9 @@ public final class SchoolFileLock implements AutoCloseable {
     public static SchoolFileLock acquire(Path dataFile) throws IOException {
         Objects.requireNonNull(dataFile, "dataFile");
         Path absolute = dataFile.toAbsolutePath().normalize();
+        if (Files.isSymbolicLink(absolute)) {
+            throw new IOException("School data file must not be a symbolic link: " + absolute);
+        }
         Path parent = absolute.getParent();
         Path filename = absolute.getFileName();
         if (parent == null || filename == null) {
@@ -42,6 +45,9 @@ public final class SchoolFileLock implements AutoCloseable {
         // Canonicalize directory aliases before choosing the shared lock path.
         Path canonicalParent = parent.toRealPath();
         Path canonicalData = canonicalParent.resolve(filename);
+        if (Files.isSymbolicLink(canonicalData)) {
+            throw new IOException("School data file must not be a symbolic link: " + canonicalData);
+        }
         Path sidecar = canonicalParent.resolve(filename + ".lock");
         synchronized (HELD_IN_JVM) {
             // On POSIX, closing a second descriptor can release the first descriptor's
