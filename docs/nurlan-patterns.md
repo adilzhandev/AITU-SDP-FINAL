@@ -54,7 +54,7 @@ Two independent observers demonstrate different reactions to the same event:
 - `NotificationCenter` creates a `Notification` for the affected student and another for the course teacher. If both IDs are equal, it creates only one. `getNotifications(recipientId)` filters by recipient.
 - `ActivityLogObserver` records one readable activity entry per event, including its course and user IDs.
 
-Both observers expose immutable list snapshots. `NotificationCenter.restore(notification)` restores saved messages without publishing another event. It preserves duplicates if the supplied saved history contains them; repeated genuine events can have identical text.
+Both observers expose immutable list snapshots. `NotificationCenter.restore(notification)` adds an existing notification directly, without publishing a new event, and preserves duplicates in the supplied order. The application itself does not call it: snapshots do not store notifications, and loading replays each saved grade through the facade, which regenerates the notifications and activity log (see [storage](storage.md)). `restore` and `getAll` are a standalone observer API exercised by `UsersNotificationsTest`.
 
 ```mermaid
 classDiagram
@@ -95,7 +95,7 @@ The integration contract is that the school facade publishes an event only after
 3. A single grade event reaches both the notification center and activity log; subscribing twice does not duplicate delivery.
 4. Unsubscribing one observer leaves the other active.
 5. Each student sees only messages addressed to their ID, while the responsible teacher receives their course events.
-6. Saved notifications restore in the same order, and equal student/teacher IDs get one notification per event.
+6. `restore` adds notifications in the same order without publishing events, and equal student/teacher IDs get one notification per event.
 7. Exposed collections cannot mutate observer state, and a subscription added during publication begins with the next event.
 8. Null observers/events and blank notification fields are rejected.
 
