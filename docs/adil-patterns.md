@@ -40,8 +40,6 @@ classDiagram
 Run `java Run.java demo`, or use menu 13 in an empty school. Show S1's base report, then enable attendance, then comments, then both. C1 uses weighted categories (78%), C2 uses total points (80%).
 Try enrolling a teacher as a student, enrolling S1 twice, or adding an unknown weighted category. Explain why the rejected operation leaves the data unchanged.
 
-The PDF topic list suggests Decorator for roles/permissions as an example. This implementation deliberately uses composition of student reports instead; all six distinct patterns still participate in the same application scenario.
-
 ## Verification
 
 `FacadeReportsTest`, `ConsoleTest`, `ConsolePersistenceTest`, `StorageTest` and `FileLockTest` exercise validation, both independent observers, report composition, persistence/restart, Unicode IDs, invalid console input, failed save recovery and exclusive file access.

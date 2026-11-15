@@ -1,6 +1,6 @@
 # Nurlan-byte: user creation and school notifications
 
-Planned module owner: **Nurlan-byte**. This document describes the two design patterns assigned to this part of the School Management System: **Factory Method** and **Observer**. Ownership here identifies the agreed division of work; Git history records the actual commits.
+**Nurlan-byte** presents Factory Method for creating users and Observer for delivering grade notifications.
 
 ## Factory Method
 
@@ -39,7 +39,7 @@ classDiagram
 
 Example: creating a student through `UserFactory.forRole(Role.STUDENT).create(...)` produces a `Student` with role `STUDENT`. The calling school workflow consumes the common `User` interface and does not need to construct the concrete class.
 
-The email check is deliberately a basic address-format check for this demo; it does not verify mailbox existence. Invalid or missing fields raise `IllegalArgumentException`; a null factory role raises `NullPointerException`.
+Invalid or missing fields raise `IllegalArgumentException`. Passing a null role to the factory raises `NullPointerException`.
 
 Shared `TextRules` bounds IDs, names and email lengths and rejects unpaired UTF-16 surrogates before data enters the application. Email validation rejects Unicode whitespace inside addresses. Valid Unicode names remain supported, including supplementary characters; the integration tests verify UTF-8 save/load round trips.
 
@@ -51,7 +51,7 @@ Shared `TextRules` bounds IDs, names and email lengths and rejects unpaired UTF-
 
 Two independent observers demonstrate different reactions to the same event:
 
-- `NotificationCenter` creates a `Notification` for the affected student and another for the course teacher. If both IDs are equal, it creates only one. `getNotifications(recipientId)` filters by recipient. This filtering is a data-selection operation, not an authentication or authorization system.
+- `NotificationCenter` creates a `Notification` for the affected student and another for the course teacher. If both IDs are equal, it creates only one. `getNotifications(recipientId)` filters by recipient.
 - `ActivityLogObserver` records one readable activity entry per event, including its course and user IDs.
 
 Both observers expose immutable list snapshots. `NotificationCenter.restore(notification)` restores saved messages without publishing another event. It preserves duplicates if the supplied saved history contains them; repeated genuine events can have identical text.
@@ -85,8 +85,6 @@ classDiagram
 ```
 
 The integration contract is that the school facade publishes an event only after a grade has passed validation and has been recorded in memory. Corrections update the same assessment and publish one correction event to both observers. Rejected grades, invalid corrections and snapshot-capacity failures produce no events. Disk autosave happens afterward in the console; if it fails, the current records and events remain in memory for retry or recovery. These ordering rules belong to the facade's integration checks, not to the standalone observer classes.
-
-This is an in-process Observer implementation with no message queue or external service. If an observer throws an exception, publication propagates the exception and later observers are not invoked. The built-in observers reject null input and otherwise perform only local list updates.
 
 ## Checks and defense examples
 

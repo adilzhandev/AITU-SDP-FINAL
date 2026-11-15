@@ -1,7 +1,5 @@
 # File storage
 
-`FileSchoolStore` is part of Adil's application/integration work. It uses only the Java standard library.
-
 The snapshot is a UTF-8 Java Properties file with format version `2`. It stores users, courses, grading weights, enrollments, individual grades with stable positive IDs, and attendance. Properties escaping preserves Unicode names, newlines and punctuation. Weight category names are stored as values of indexed entries, so dots or punctuation in category names cannot change the file structure.
 
 Version `1` snapshots are also readable when their data passes the current validation rules. Their grades receive IDs `1..N` in stored order. Loading does not rewrite the file; the next successful save writes version `2`. Subsequent new grades use an ID above the largest stored ID. Duplicate, zero or negative stored grade IDs are invalid. Editing preserves the ID and updates the same record rather than appending another assessment.
@@ -18,7 +16,7 @@ Text limits after trimming are 64 UTF-16 code units for IDs and categories, 200 
 
 Unknown fields, record counts that leave unconsumed entries, and duplicate attendance records for the same student/course/date are rejected rather than silently losing data.
 
-`SchoolFileLock.acquire(dataFile)` provides an exclusive session lock. The application must acquire it before loading and keep it until the interactive session and final save finish. A second application instance opening the same snapshot fails with a clear message. The lock is held on a stable `.lock` sidecar, not on the snapshot that saving replaces. The sidecar is deliberately retained after the lock is released; an empty sidecar does not mean the application is still running. Directory paths are resolved to their real location so directory aliases share a lock. This protects cooperating application instances, not edits by unrelated external programs. Memory mode and the standalone demo do not need a file lock.
+`SchoolFileLock.acquire(dataFile)` provides an exclusive session lock. The application must acquire it before loading and keep it until the interactive session and final save finish. A second application instance opening the same snapshot fails with a clear message. The lock is held on a stable `.lock` sidecar, not on the snapshot that saving replaces. The sidecar stays on disk after the session ends. Directory paths are resolved to their real location so directory aliases share a lock. This protects cooperating application instances, not edits by unrelated external programs. Memory mode and the standalone demo do not need a file lock.
 
 A data-file symlink is rejected on locking, loading and saving, so opening an alias cannot bypass the session lock or replace the symlink with a separate snapshot. Use the target file path instead. Parent-directory symlinks still resolve to the same lock location.
 All three operations first normalize the absolute path, including `.` and `..`, so they consistently read, lock and write the same destination.

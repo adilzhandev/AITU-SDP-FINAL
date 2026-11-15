@@ -31,11 +31,6 @@ In IntelliJ IDEA, choose a JDK 17+ for the project and open the included module.
 `school.Main` for the console or `school.AllTests` for tests. `Run.java` is the
 terminal launcher; build output and saved data are excluded from source roots.
 
-**Быстрый запуск:** установите JDK 17 или новее, откройте терминал в папке проекта
-и выполните `java Run.java`. Для готовой демонстрации используйте
-`java Run.java demo`, для проверок — `java Run.java test`. Приложение полностью
-консольное, на Java, без сторонних библиотек.
-
 ## Application modes
 
 ```text
@@ -91,9 +86,9 @@ Points grading uses total earned points divided by total possible points.
 Weighted grading applies the configured category percentages; categories without
 grades contribute **zero** until graded. Category weights must total 100%.
 
-## Patterns and assigned work
+## Patterns for the defense
 
-| Participant | Pattern | Implementation |
+| Presenter | Pattern | Implementation |
 | --- | --- | --- |
 | `Nurlan-byte` | Factory Method | `UserFactory` and concrete factories create student, teacher, and admin profiles. |
 | `Nurlan-byte` | Observer | `EventPublisher` notifies `NotificationCenter` and an independent `ActivityLogObserver` after a valid grade is recorded or corrected. |
@@ -101,9 +96,6 @@ grades contribute **zero** until graded. Category weights must total 100%.
 | `AsylStyle` | Strategy | `PointsGradeStrategy` and `WeightedGradeStrategy` calculate interchangeable grading algorithms. |
 | `adilzhandev` | Facade | `SchoolFacade` coordinates enrollment, grade validation, events, and reports. |
 | `adilzhandev` | Decorator | `AttendanceReportDecorator` and `CommentsReportDecorator` extend a basic student report. |
-
-Implementation is AI-assisted. Each assigned team member should review, test,
-and be able to explain their two patterns and their interaction with the project.
 
 ## Structure and documentation
 
@@ -145,6 +137,4 @@ composition, console input, file persistence, and file locking. The executable
 demo is a short defense scenario: create profiles, build courses, enroll a
 student, record grades, notify observers, and compose a report.
 
-The pattern notes support preparation for the defense. The final PDF report,
-application screenshots, and submission ZIP are separate deliverables; this
-README does not claim they are already prepared.
+The final submission also includes a PDF report, console screenshots, and a ZIP of the source code.

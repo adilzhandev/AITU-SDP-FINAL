@@ -11,7 +11,7 @@ import school.storage.FileSchoolStore;
 import school.users.Role;
 import school.validation.TextRules;
 
-/** Regression coverage for values that previously entered memory but could not be saved. */
+/** Checks text validation and UTF-8 snapshot round trips. */
 public final class TextValidationTest {
     private TextValidationTest() { }
 

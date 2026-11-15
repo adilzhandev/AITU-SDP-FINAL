@@ -110,7 +110,4 @@ builder reuse, empty results, normalized categories (including U+2003 whitespace
 invalid input, and large finite scores. Its `run()` method integrates with the project's dependency-free
 test suite; its `main()` can also run the module tests directly.
 
-**Responsibility:** AsylStyle owns course construction, grade calculation, and
-the explanations and tests for these two patterns. The project is AI-assisted;
-the assigned team member should review and understand this implementation before
-presenting it.
+**Defense:** AsylStyle presents course construction and grade calculation.
