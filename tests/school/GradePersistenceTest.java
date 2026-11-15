@@ -118,8 +118,10 @@ public final class GradePersistenceTest {
         Path link = directory.resolve("alias.properties");
         try {
             Files.createSymbolicLink(link, target.getFileName());
-        } catch (UnsupportedOperationException exception) {
-            return; // This filesystem does not implement symbolic links.
+        } catch (UnsupportedOperationException | IOException exception) {
+            // Some platforms (e.g. Windows without Developer Mode) do not let
+            // ordinary users create symbolic links; skip these checks there.
+            return;
         }
         byte[] original = Files.readAllBytes(target);
         expectIOException(() -> store.load(link));

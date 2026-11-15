@@ -176,7 +176,9 @@ public final class ReportExportTest {
         Path alias = directory.resolve("linked-report.txt");
         try {
             Files.createSymbolicLink(alias, protectedFile.getFileName());
-        } catch (UnsupportedOperationException exception) {
+        } catch (UnsupportedOperationException | IOException exception) {
+            // Some platforms (e.g. Windows without Developer Mode) do not let
+            // ordinary users create symbolic links; skip these checks there.
             return;
         }
         byte[] before = Files.readAllBytes(protectedFile);
