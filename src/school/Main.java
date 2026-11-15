@@ -1,6 +1,8 @@
 package school;
 
+import java.io.Console;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Scanner;
@@ -48,7 +50,7 @@ public final class Main {
         try (SchoolFileLock lock = file == null ? null : SchoolFileLock.acquire(file)) {
             FileSchoolStore store = new FileSchoolStore();
             SchoolFacade school = file == null ? new SchoolFacade() : store.load(file);
-            try (Scanner input = new Scanner(System.in, StandardCharsets.UTF_8)) {
+            try (Scanner input = new Scanner(System.in, inputCharset())) {
                 if (!new ConsoleMenu(input, System.out, school, store, file).run()) status = 1;
             }
         } catch (IOException error) {
@@ -57,5 +59,15 @@ public final class Main {
             status = 1;
         }
         if (status != 0) System.exit(status);
+    }
+
+    /**
+     * An interactive console delivers keystrokes in its own code page (for example
+     * IBM866 in a Russian-locale Windows console), so decode input with that charset.
+     * Redirected input has no console and is read as UTF-8.
+     */
+    private static Charset inputCharset() {
+        Console console = System.console();
+        return console != null ? console.charset() : StandardCharsets.UTF_8;
     }
 }
