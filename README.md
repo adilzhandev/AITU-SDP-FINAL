@@ -129,14 +129,3 @@ an atomic move where supported. Notifications and activity logs are reconstructe
 from the current saved grade records when loading; the history of individual
 corrections is session-only. Version 1 snapshots are read and migrated to version
 2, which stores stable grade IDs, on the next successful save.
-
-## Verification and demo
-
-Run `java Run.java test` to check module behavior, facade integration, report
-composition, console input, file persistence, and file locking. The executable
-demo is a short defense scenario: create profiles, build courses, enroll a
-student, record grades, notify observers, and compose a report.
-
-## Submission materials
-
-Include a PDF report, console screenshots, and a ZIP of the source code.
